@@ -10,7 +10,8 @@ export function SeatGrid() {
 
   // Load seats initially
   useEffect(() => {
-    fetch("http://localhost:4000/seats")
+    fetch(`${import.meta.env.VITE_API_URL}/seats`)
+
       .then((res) => res.json())
       .then((data: SeatType[]) => setSeats(data))
       .catch(() => toast.error("Failed to load seats"));

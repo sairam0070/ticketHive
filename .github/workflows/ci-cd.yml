@@ -1,0 +1,57 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: 1
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Set Environment Variables
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+            echo "ENV_FILE=.env.staging" >> $GITHUB_ENV
+            echo "COMPOSE_FILE=docker-compose.staging.yml" >> $GITHUB_ENV
+          else
+            echo "ENV_FILE=.env.production" >> $GITHUB_ENV
+            echo "COMPOSE_FILE=docker-compose.production.yml" >> $GITHUB_ENV
+          fi
+
+      - name: Build Docker Images
+        run: |
+          docker compose -f $COMPOSE_FILE build
+
+      - name: Deploy Containers
+        run: |
+          docker compose -f $COMPOSE_FILE up -d
+
+      - name: Health Check
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+            curl --fail http://localhost:5173 || exit 1
+          else
+            curl --fail http://your-production-domain.com || exit 1
